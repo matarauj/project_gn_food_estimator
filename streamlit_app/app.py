@@ -48,8 +48,8 @@ st.set_page_config(
     initial_sidebar_state = "expanded"
 )
 
-FBG_LOGO = "images/fbg-logo.png"
-st.logo(FBG_LOGO, size="large")
+FBG_LOGO = ROOT / "images" / "fbg-logo.png"
+st.logo(FBG_LOGO, size = "large")
 
 # =============================================================================
 # Sidebar
