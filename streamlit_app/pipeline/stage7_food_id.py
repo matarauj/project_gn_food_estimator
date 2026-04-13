@@ -164,8 +164,8 @@ class _HFFoodIdentifier:
 
 def _get_identifier():
     if cfg.STUB_MODE:
-        #return _StubFoodIdentifier()
-        return _HFFoodIdentifier()
+        return _StubFoodIdentifier()
+        #return _HFFoodIdentifier()
     return _HFFoodIdentifier()
 
 

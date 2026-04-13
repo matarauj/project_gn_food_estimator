@@ -1,32 +1,15 @@
 # =============================================================================
 # requirements.txt — GN Food Estimator
-# Target runtime: Python 3.12, Google Colab / Kaggle (T4 GPU)
+# Target runtime: Python 3.12, Google Colab / Kaggle (T4 GPU) / Streamlit Cloud
 # =============================================================================
 
-# Core ML
-torch==2.9.0
-torchvision==0.20.0
-fastai==2.8.5
-timm>=0.9.12
-
 # Computer vision
-opencv-python-headless>=4.9.0  # headless — no GUI needed in Colab/server
+opencv-python-headless>=4.9.0
 Pillow>=10.0.0
 
 # Data handling
 pandas>=2.2.0
 numpy>=1.26.0
 
-# Visualisation
-#matplotlib>=3.8.0
-
 # Streamlit app
 streamlit>=1.35.0
-
-# Utilities
-#tqdm>=4.66.0
-#PyYAML>=6.0
-
-# Model #3 - food identification
-transformers>=4.40.0
-accelerate>=0.29.0
