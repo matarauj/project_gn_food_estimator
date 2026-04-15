@@ -16,9 +16,11 @@ textColor = "#000000"
 # Font settings
 font = "sans serif"
 
+baseRadius = "large"
+
+
 
 [theme.sidebar]
-
 # Primary accent color.
 #primaryColor =
 
@@ -26,3 +28,5 @@ font = "sans serif"
 backgroundColor = "#FFFFFF"
 
 secondaryBackgroundColor = "#FFFFFF"
+
+baseRadius = "large"
