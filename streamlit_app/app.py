@@ -47,9 +47,9 @@ st.set_page_config(
     layout = "centered",
     initial_sidebar_state = "expanded",
     menu_items = {
-        'Get Help': 'https://www.extremelycoolapp.com/help',
-        'Report a bug': "https://www.extremelycoolapp.com/bug",
-        'About': "# This is a header. This is an *extremely* cool app!"
+        'Website': 'https://www.foodbegood.app/',
+        'LinkedIn': "https://www.linkedin.com/company/food-be-good/",
+        'About': " Food Sharing for Visitors and Canteens. Full Bellies, NOT Full Bins."
     }
 )
 
