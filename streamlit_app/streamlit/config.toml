@@ -3,7 +3,7 @@
 base = "light"
 
 # Primary color (used for buttons, interactive elements)
-primaryColor = "#FF6B6B"
+primaryColor = "#ddf914"
 
 # Background color for the main content area
 backgroundColor = "#FFFFFF"
@@ -12,7 +12,7 @@ backgroundColor = "#FFFFFF"
 secondaryBackgroundColor = "#F0F2F6"
 
 # Color used for almost all text
-textColor = "#31333F"
+textColor = "#000000"
 
 # Font settings
 font = "sans serif"
