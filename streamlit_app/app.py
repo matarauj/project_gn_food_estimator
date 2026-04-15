@@ -103,16 +103,18 @@ st.logo(FBG_LOGO, size = "large", link = "https://www.foodbegood.app/")
 
 with st.sidebar:
     st.subheader("Canteen summary")
-    st.title("**Berlin Campus Canteen**")
+    st.title("Berlin Campus Canteen")
     
-    st.markdown("Pickup time" \
-    "**14:30 - 14:35**" \
-    "" \
-    "FBG contact person" \
-    "**Vanessa Klein**" \
-    "" \
-    "Agreed users" \
-    "**420**")
+    st.markdown("""
+                Pickup time
+                **14:30 - 14:35**
+                
+                FBG contact person
+                **Vanessa Klein**
+                
+                Agreed users
+                **420**
+         """)
 
 
     st.divider()
