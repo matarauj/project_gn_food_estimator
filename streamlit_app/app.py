@@ -44,8 +44,13 @@ from pipeline.stage2_detection import ContainerNotFoundError
 st.set_page_config(
     page_title = "GN Food Estimator",
     page_icon = "🍱",
-    layout = "wide",
-    initial_sidebar_state = "expanded"
+    layout = "centered",
+    initial_sidebar_state = "expanded",
+    menu_items = {
+        'Get Help': 'https://www.extremelycoolapp.com/help',
+        'Report a bug': "https://www.extremelycoolapp.com/bug",
+        'About': "# This is a header. This is an *extremely* cool app!"
+    }
 )
 
 FBG_LOGO = cfg.ROOT / "images" / "fbg-logo.png"
