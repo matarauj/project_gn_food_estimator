@@ -137,7 +137,7 @@ with st.sidebar:
     #    value = cfg.CONFIDENCE_THRESHOLD,
     #    step = 0.05,
     #    help = "Below this confidence, you will be asked to retake the photo."
-    )
+    #)
     #cfg.CONFIDENCE_THRESHOLD = conf_thresh
 
     st.divider()
