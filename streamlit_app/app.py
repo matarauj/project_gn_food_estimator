@@ -118,27 +118,27 @@ with st.sidebar:
         st.success("**Live mode** — using trained models.", icon = "✅")
 
     st.divider()
-    st.subheader("Thresholds")
 
-    score_thresh = st.slider(
-        "Detection confidence threshold",
-        min_value = 0.10,
-        max_value = 0.90,
-        value = cfg.MODEL1_SCORE_THRESH,
-        step = 0.05,
-        help = "Boxes below this score are discarded."
-    )
-    cfg.MODEL1_SCORE_THRESH = score_thresh
+    #st.subheader("Thresholds")
+    #score_thresh = st.slider(
+    #    "Detection confidence threshold",
+    #    min_value = 0.10,
+    #    max_value = 0.90,
+    #    value = cfg.MODEL1_SCORE_THRESH,
+    #    step = 0.05,
+    #    help = "Boxes below this score are discarded."
+    #)
+    #cfg.MODEL1_SCORE_THRESH = score_thresh
 
-    conf_thresh = st.slider(
-        "Fill level confidence threshold",
-        min_value = 0.40,
-        max_value = 0.95,
-        value = cfg.CONFIDENCE_THRESHOLD,
-        step = 0.05,
-        help = "Below this confidence, you will be asked to retake the photo."
+    #conf_thresh = st.slider(
+    #    "Fill level confidence threshold",
+    #    min_value = 0.40,
+    #    max_value = 0.95,
+    #    value = cfg.CONFIDENCE_THRESHOLD,
+    #    step = 0.05,
+    #    help = "Below this confidence, you will be asked to retake the photo."
     )
-    cfg.CONFIDENCE_THRESHOLD = conf_thresh
+    #cfg.CONFIDENCE_THRESHOLD = conf_thresh
 
     st.divider()
     st.caption(cfg.CO2_DISCLAIMER)
@@ -182,50 +182,6 @@ def draw_detections(
             2
         )
     return overlay
-
-
-#def run_full_pipeline(source_bytes: bytes) -> dict | None:
-#    """
-#    Run Stages I-IX on one photo.
-#    Returns a dict with all stage results, or None on fatal error.
-#    """
-#    try:
-#        s1 = stage1_capture.run(source_bytes)
-#    except ArUcoNotFoundError as e:
-#        st.error(f"**ArUco marker not detected.** {e}")
-#        st.warning(
-#            "Ensure the printed marker (ID 0, DICT_4X4_50) is fully "
-#            "visible and retake the photo."
-#        )
-#        return None
-# 
-#    try:
-#        s2 = stage2_detection.run(s1)
-#    except ContainerNotFoundError as e:
-#        st.error(f"**No container detected.** {e}")
-#        return None
-# 
-#    s3 = stage3_geometry.run(s2)
-#    s4 = stage4_fill_level.run(s3)
-#    s5 = stage5_volume.run(s4)
-#    s6 = stage6_food_volume.run(s5)
-#
-#    crops = [f.crop_rgb for f in s4.fills]
-#    
-#    s7 = stage7_food_id.run(s6, crops)
-#    s8 = stage8_mass.run(s7)
-#    s9 = stage9_emissions.run(s8)
-# 
-#    return dict(
-#        s1 = s1,
-#        s2 = s2,
-#        s3 = s3,
-#        s4 = s4,
-#        s5 = s5,
-#        s6 = s6,
-#        s7 = s7,
-#        s8 = s8,
-#        s9 = s9)
 
 
 def run_pipeline_pass1(source_bytes: bytes) -> dict | None:
@@ -378,6 +334,9 @@ def show_photo_results(results: dict, photo_label: str):
 # =============================================================================
 # Main layout — Tabs: Photo 1, Photo 2 and comparison
 # =============================================================================
+
+st.title("Food Be Good - GN Food Estimator")
+
 
 tab1, tab2, tab_cmp = st.tabs([
     "📷  Photo 1 (before)",
