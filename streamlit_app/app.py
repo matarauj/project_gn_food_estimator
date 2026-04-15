@@ -102,8 +102,19 @@ st.logo(FBG_LOGO, size = "large", link = "https://www.foodbegood.app/")
 # =============================================================================
 
 with st.sidebar:
-    st.title("Food Be Good - GN Food Estimator")
-    st.caption("Estimate food volume and CO\u2082 emissions from GN containers.")
+    st.subheader("Canteen summary")
+    st.title("**Berlin Campus Canteen**")
+    
+    st.markdown("Pickup time" \
+    "**14:30 - 14:35**" \
+    "" \
+    "FBG contact person" \
+    "**Vanessa Klein**" \
+    "" \
+    "Agreed users" \
+    "**420**")
+
+
     st.divider()
 
     st.subheader("Mode")
@@ -336,7 +347,7 @@ def show_photo_results(results: dict, photo_label: str):
 # =============================================================================
 
 st.title("Food Be Good - GN Food Estimator")
-
+st.caption("Estimate food volume and CO\u2082 emissions from GN containers.")
 
 tab1, tab2, tab_cmp = st.tabs([
     "📷  Photo 1 (before)",
