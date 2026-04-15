@@ -284,7 +284,7 @@ def show_photo_results(results: dict, photo_label: str):
     """
     s1, s2, s3, s4, s9 = (results["s1"], results["s2"], results["s3"], results["s4"], results["s9"])
  
-    col_img, col_data = st.columns([1, 1], gap = "large")
+    col_img, col_data = st.columns([1, 1], gap = "large", border = True)
  
     with col_img:
         st.markdown("##### Detection")
@@ -576,7 +576,7 @@ with tab_cmp:
                 f"Container {i+1} — {c.container_label} ({c.gn_id})",
                 expanded = True
             ):
-                ca, cb, cc = st.columns(3)
+                ca, cb, cc = st.columns(3, border = True)
                 with ca:
                     st.markdown("**Before (Photo 1)**")
                     st.markdown(f"Food: `{c.food_type_before}`")
