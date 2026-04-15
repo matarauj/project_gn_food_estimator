@@ -24,3 +24,5 @@ font = "sans serif"
 
 # Background color of the app.
 backgroundColor = "#FFFFFF"
+
+secondaryBackgroundColor = "#FFFFFF"
