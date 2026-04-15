@@ -41,27 +41,46 @@ from pipeline.stage2_detection import ContainerNotFoundError
 # Page config
 # =============================================================================
 
+def inject_custom_css():
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Open+Sans:wght@400;600&display=swap');
+
+    html, body, [class*="css"]  {
+        font-family: 'Open Sans', sans-serif;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Lilita One', sans-serif;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Call this function at the start of your app
+inject_custom_css()
+
+
 st.set_page_config(
-    page_title = "GN Food Estimator",
+    page_title = "FBG - GN Food Estimator",
     page_icon = "🍱",
     layout = "centered",
     initial_sidebar_state = "expanded",
     menu_items = {
         'Get Help': 'https://www.foodbegood.app/',
         'Report a bug': "https://www.linkedin.com/company/food-be-good/",
-        'About': " Food Sharing for Visitors and Canteens. Full Bellies, NOT Full Bins."
+        'About': "# Food Sharing for Visitors and Canteens. *Full Bellies, NOT Full Bins.*"
     }
 )
 
 FBG_LOGO = cfg.ROOT / "images" / "fbg-logo.png"
-st.logo(FBG_LOGO, size = "large")
+st.logo(FBG_LOGO, size = "large", link = "https://www.foodbegood.app/")
 
 # =============================================================================
 # Sidebar
 # =============================================================================
 
 with st.sidebar:
-    st.title("GN Food Estimator")
+    st.title("Food Be Good - GN Food Estimator")
     st.caption("Estimate food volume and CO\u2082 emissions from GN containers.")
     st.divider()
 
