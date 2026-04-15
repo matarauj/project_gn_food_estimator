@@ -47,8 +47,8 @@ st.set_page_config(
     layout = "centered",
     initial_sidebar_state = "expanded",
     menu_items = {
-        'Website': 'https://www.foodbegood.app/',
-        'LinkedIn': "https://www.linkedin.com/company/food-be-good/",
+        'Get Help': 'https://www.foodbegood.app/',
+        'Report a bug': "https://www.linkedin.com/company/food-be-good/",
         'About': " Food Sharing for Visitors and Canteens. Full Bellies, NOT Full Bins."
     }
 )
