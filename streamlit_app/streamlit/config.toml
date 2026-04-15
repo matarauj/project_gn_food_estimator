@@ -21,3 +21,12 @@ font = "sans serif"
 [theme.fonts]
 headerFont = "Lilita One, sans-serif"
 bodyFont = "'Open Sans', sans-serif"
+
+
+[theme.sidebar]
+
+# Primary accent color.
+#primaryColor =
+
+# Background color of the app.
+backgroundColor = "#FFFFFF"
