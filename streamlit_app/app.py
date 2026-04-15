@@ -52,11 +52,33 @@ def inject_custom_css():
 
     h1, h2, h3, h4, h5, h6 {
         font-family: 'Lilita One', sans-serif;
+        font-weight: 400;
+    }
+
+    /* Sidebar header */
+    .css-1lcbmhc {
+        font-family: 'Lilita One', sans-serif;
+    }
+
+    /* Button styling */
+    .stButton>button {
+        font-family: 'Open Sans', sans-serif;
+        font-weight: 600;
+        background-color: #FF6B6B;
+        color: white;
+        border-radius: 4px;
+        border: none;
+    }
+
+    /* Success/error messages */
+    .stAlert {
+        border-radius: 4px;
+        font-family: 'Open Sans', sans-serif;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# Call this function at the start of your app
+# Call this at the start of your app
 inject_custom_css()
 
 

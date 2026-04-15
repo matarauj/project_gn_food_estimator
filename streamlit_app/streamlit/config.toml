@@ -1,5 +1,4 @@
 [theme]
-
 base = "light"
 
 # Primary color (used for buttons, interactive elements)
@@ -16,11 +15,6 @@ textColor = "#000000"
 
 # Font settings
 font = "sans serif"
-
-# Custom fonts (requires CSS injection in your app)
-[theme.fonts]
-headerFont = "Lilita One, sans-serif"
-bodyFont = "'Open Sans', sans-serif"
 
 
 [theme.sidebar]
