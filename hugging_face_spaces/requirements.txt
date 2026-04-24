@@ -15,7 +15,7 @@ numpy>=1.26.0
 pandas>=2.2.0
 
 # Model #1 and #2 (Faster R-CNN + EfficientNet-B0)
-torch>=2.0.0
+torch==2.10.0
 torchvision>=0.15.0
 fastai>=2.7.0
 timm>=0.9.12
