@@ -1,0 +1,25 @@
+# =============================================================================
+# requirements.txt — GN Food Estimator (HuggingFace Spaces)
+# Full dependencies for live model inference.
+# =============================================================================
+
+# Streamlit app
+streamlit>=1.35.0
+
+# Computer vision
+opencv-python-headless>=4.9.0
+Pillow>=10.0.0
+
+# Data
+numpy>=1.26.0
+pandas>=2.2.0
+
+# Model #1 and #2 (Faster R-CNN + EfficientNet-B0)
+torch>=2.0.0
+torchvision>=0.15.0
+fastai>=2.7.0
+timm>=0.9.12
+
+# Model #3 (nateraw/food ViT via HuggingFace)
+transformers>=4.40.0
+accelerate>=0.29.0
