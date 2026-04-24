@@ -13,3 +13,4 @@ jobs:
           github_repo_id: ${{ github.repository }}
           huggingface_repo_id: matarauj/test_sync_project_gn_food_estimator
           hf_token: ${{ secrets.HF_TOKEN }}
+          subdirectory: 'hugging_face_spaces'
