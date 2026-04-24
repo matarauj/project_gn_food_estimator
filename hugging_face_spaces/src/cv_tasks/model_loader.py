@@ -96,7 +96,7 @@ class FasterRCNNDetector:
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
-        state = torch.load(cfg.MODEL1_PATH, map_location = "cpu")
+        state = torch.load(cfg.MODEL1_PATH, map_location = "cpu", weights_only = False)
         model.load_state_dict(state)
         model.eval()
 
