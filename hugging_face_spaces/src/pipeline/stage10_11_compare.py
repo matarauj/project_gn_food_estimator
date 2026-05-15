@@ -46,7 +46,8 @@ class ComparisonResult:
 
 
 def run(stage9_before: StageNineResult,
-        stage9_after:  StageNineResult) -> ComparisonResult:
+        stage9_after:  StageNineResult
+        ) -> ComparisonResult:
     """
     Execute Stage XI.
 
@@ -69,7 +70,7 @@ def run(stage9_before: StageNineResult,
     # Pad the shorter list with zero-emission placeholders
     n = max(len(before_list), len(after_list))
     before_list = _pad(before_list, n)
-    after_list  = _pad(after_list,  n)
+    after_list = _pad(after_list, n)
 
     comparisons = []
     for b, a in zip(before_list, after_list):
@@ -86,7 +87,8 @@ def run(stage9_before: StageNineResult,
                 co2_saved_kg     = (b.co2_kg if b else 0.0) - (a.co2_kg if a else 0.0),
                 fill_before      = b.fill_label if b else "—",
                 fill_after       = a.fill_label if a else "—"
-        ))
+            )
+        )
 
     total_before = sum(c.co2_kg_before for c in comparisons)
     total_after  = sum(c.co2_kg_after  for c in comparisons)
@@ -104,5 +106,7 @@ def run(stage9_before: StageNineResult,
 
 
 def _pad(lst: list, n: int) -> list:
-    """Pad a list to length n with None."""
+    """
+    Pad a list to length n with None.
+    """
     return lst + [None] * (n - len(lst))

@@ -16,7 +16,11 @@
 #      errors and guarantees we always output a known GN size.
 #   4. If the pixel-derived volume disagrees with the label-based volume by
 #      more than the tolerance, prefer the label (Model #1 is more reliable
-#      than pixel measurement at this dataset size) and log a warning.
+#      than pixel measurement at this dataset size) and set snap_warning=True.
+#
+# In approximate mode (measurement_reliable=False) snap_warning is always
+# set to True because the pixel measurements cannot be trusted, and the label
+# from Model #1 is the authoritative source for volume.
 # =============================================================================
 
 from dataclasses import dataclass
@@ -25,6 +29,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from pipeline.stage4_fill_level import StageFourResult, FillResult
+from cv_tasks.aruco import CalibrationState
 import config as cfg
 
 
@@ -40,6 +45,7 @@ class VolumeResult:
     measured_h_mm:    float    # measured height from Stage III
     snapped:          bool     # True if measurement was snapped to standard
     snap_warning:     bool     # True if label and measurement disagreed
+    measurement_reliable: bool # False in approximate (no ArUco) mode
     # Passed through from Stage IV
     fill_ratio:       float
     fill_label:       str
@@ -52,7 +58,7 @@ class VolumeResult:
 @dataclass
 class StageFiveResult:
     volumes:        list[VolumeResult]
-    aruco:          dict
+    calibration:    CalibrationState
     rectified_rgb:  object   # np.ndarray, passed through for display
 
 
@@ -66,8 +72,8 @@ def run(stage4: StageFourResult) -> StageFiveResult:
         volumes.append(vr)
     return StageFiveResult(
         volumes = volumes,
-        aruco = stage4.aruco,
-        rectified_rgb = stage4.rectified_rgb,
+        calibration   = stage4.calibration,
+        rectified_rgb = stage4.rectified_rgb
     )
 
 
@@ -93,24 +99,23 @@ def _snap_to_standard(measured_volume_l: float) -> tuple[str, bool]:
     If no standard is within tolerance, returns the nearest one anyway
     with snapped=False (caller decides what to do).
     """
-    best_id    = None
+    best_id = None
     best_delta = float("inf")
     for gn_id, spec in cfg.GN_CONTAINERS.items():
         delta = abs(measured_volume_l - spec["volume_l"]) / spec["volume_l"]
         if delta < best_delta:
             best_delta = delta
-            best_id    = gn_id
+            best_id = gn_id
     snapped = best_delta <= cfg.GN_SNAP_TOLERANCE
     return best_id, snapped
 
 
 def _estimate_volume(fill: FillResult) -> VolumeResult:
-    # Step 1: label-based GN ID
+    # label-based GN ID
     label_gn_id = _label_to_gn_id(fill.container_label)
 
-    # Step 2: pixel-derived volume
+    # pixel-derived volume
     # Use measured width and height + known depth from the label-matched spec
-    # (we cannot measure depth from a top-down photo)
     if label_gn_id:
         depth_mm = cfg.GN_CONTAINERS[label_gn_id]["depth_mm"]
     else:
@@ -118,21 +123,22 @@ def _estimate_volume(fill: FillResult) -> VolumeResult:
         depth_mm = list(cfg.GN_CONTAINERS.values())[0]["depth_mm"]
 
     # Volume in Litre: 1e-6 | in Cubic meter: 1e-9
-    measured_vol_l = (
-        fill.width_mm * fill.height_mm * depth_mm / 1e6
-    )
+    measured_vol_l = fill.width_mm * fill.height_mm * depth_mm / 1e6
 
-    # Step 3: snap measured volume to nearest standard
+    # snap measured volume to nearest standard
     snap_gn_id, snapped = _snap_to_standard(measured_vol_l)
 
-    # Step 4: resolve disagreement between label and snap
-    snap_warning = False
-    if label_gn_id != snap_gn_id:
+    # In approximate mode we always prefer the label and always warn,
+    # because the pixel measurements cannot be trusted.
+    if not fill.measurement_reliable:
         snap_warning = True
-        # Prefer the label from Model #1 — more reliable than pixel measurement
-        final_gn_id = label_gn_id
+        final_gn_id  = label_gn_id or snap_gn_id
+    elif label_gn_id != snap_gn_id:
+        snap_warning = True
+        final_gn_id  = label_gn_id   # Model #1 label is more reliable
     else:
-        final_gn_id = snap_gn_id
+        snap_warning = False
+        final_gn_id  = snap_gn_id
 
     spec = cfg.GN_CONTAINERS[final_gn_id]
 
@@ -147,6 +153,7 @@ def _estimate_volume(fill: FillResult) -> VolumeResult:
         measured_h_mm =     fill.height_mm,
         snapped =           snapped,
         snap_warning =      snap_warning,
+        measurement_reliable = fill.measurement_reliable,
         fill_ratio =        fill.fill_ratio,
         fill_label =        fill.label,
         fill_confidence =   fill.confidence,

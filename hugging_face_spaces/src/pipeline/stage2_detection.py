@@ -8,13 +8,14 @@
 # confidence threshold — the app catches this and prompts the user.
 # =============================================================================
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import numpy as np
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from pipeline.stage1_capture import StageOneResult
+from cv_tasks.aruco import CalibrationState
 from cv_tasks.model_loader import get_detector
 import config as cfg
 
@@ -47,7 +48,7 @@ class DetectedContainer:
 class StageTwoResult:
     containers: list[DetectedContainer]
     image_rgb:  np.ndarray    # passed through from Stage I (unchanged)
-    aruco:      dict          # passed through from Stage I
+    calibration: CalibrationState # passed through from Stage I
 
 
 def run(stage1: StageOneResult) -> StageTwoResult:
@@ -72,7 +73,11 @@ def run(stage1: StageOneResult) -> StageTwoResult:
 
     # Filter to container classes only (ignore any stray detections)
     valid_labels = set(cfg.MODEL1_CLASSES)
-    containers = [DetectedContainer(box = p["box"], label = p["label"], score = p["score"]) for p in raw_preds if p["label"] in valid_labels]
+    containers = [
+        DetectedContainer(box = p["box"], label = p["label"], score = p["score"]) 
+        for p in raw_preds 
+        if p["label"] in valid_labels
+        ]
 
     if not containers:
         raise ContainerNotFoundError(
@@ -86,5 +91,5 @@ def run(stage1: StageOneResult) -> StageTwoResult:
     return StageTwoResult(
         containers = containers,
         image_rgb = stage1.image_rgb,
-        aruco = stage1.aruco
+        calibration = stage1.calibration
     )

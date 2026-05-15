@@ -4,15 +4,13 @@
 # Stage VII — identify the food type in each container crop.
 #
 # Model #3: nateraw/food (ViT-base, Food-101, HuggingFace)
-# https://huggingface.co/nateraw/food
 #
 # Loading strategy:
-#   - On first run the model is downloaded from HuggingFace Hub (~350 MB)
-#     and saved to cfg.MODEL3_CACHE_DIR (models/nateraw_food_cache/).
-#   - On subsequent runs it loads directly from the cache — no internet
-#     connection needed and no re-download.
+#   - On first run the model is downloaded from HuggingFace Hub
+#     and saved to cfg.MODEL3_CACHE_DIR.
+#   - On subsequent runs it loads directly from the cache.
 #   - The pipeline is a module-level singleton so it is loaded once per
-#     app session, not once per photo.
+#     app session.
 #
 # Manual override:
 #   If the top prediction score is below cfg.MODEL3_MIN_SCORE, or if the
@@ -24,8 +22,6 @@
 #   the user's choice before the result propagates to Stage VIII.
 #
 # In STUB_MODE, returns a cycling sequence of supported food types.
-# In live mode, runs the HuggingFace pipeline and maps Food-101 class names
-# to our canonical food names via config.FOOD_CLASS_MAP.
 # =============================================================================
 
 from dataclasses import dataclass
@@ -35,6 +31,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from pipeline.stage6_food_volume import StageSixResult, FoodVolumeResult
+from cv_tasks.aruco import CalibrationState
 import config as cfg
 
 
@@ -57,7 +54,7 @@ def _get_hf_pipeline():
     )
  
     cache_dir = cfg.MODEL3_CACHE_DIR
-    cache_dir.mkdir(parents = True, exist_ok = True)
+    cache_dir.mkdir(parents=True, exist_ok=True)
     cache_str = str(cache_dir)
  
     # Check whether the model is already cached
@@ -71,11 +68,11 @@ def _get_hf_pipeline():
     # Load model and feature extractor explicitly so cache_dir is honoured.
     model = AutoModelForImageClassification.from_pretrained(
         cfg.MODEL3_HF_NAME,
-        cache_dir = cache_str
+        cache_dir=cache_str
     )
     image_processor = AutoImageProcessor.from_pretrained(
         cfg.MODEL3_HF_NAME,
-        cache_dir = cache_str
+        cache_dir=cache_str
     )
 
     _hf_pipeline = hf_pipeline_fn(
@@ -192,12 +189,13 @@ class FoodIdResult:
     container_label:  str
     detection_score:  float
     snap_warning:     bool
+    measurement_reliable: bool
 
 
 @dataclass
 class StageSevenResult:
     food_ids:      list[FoodIdResult]
-    aruco:         dict
+    calibration:   CalibrationState
     rectified_rgb: object
 
 
@@ -205,7 +203,7 @@ def run(stage6: StageSixResult,
         crop_images: list[np.ndarray]) -> StageSevenResult:
     """
     Execute Stage VII.
-    At the moment, the system uses an image classifier, rather than an instance segmentation.
+    The system uses an image classifier.
 
     Parameters
     ----------
@@ -223,11 +221,11 @@ def run(stage6: StageSixResult,
 
     for fv, crop in zip(stage6.food_volumes, crop_images):
         pred = identifier.identify(crop)
-        results.append(_make_result(pred, fv, override_applied = False))
+        results.append(_make_result(pred, fv, override_applied=False))
 
     return StageSevenResult(
         food_ids = results,
-        aruco = stage6.aruco,
+        calibration = stage6.calibration,
         rectified_rgb = stage6.rectified_rgb
     )
 
@@ -254,22 +252,23 @@ def apply_overrides(stage7: StageSevenResult,
             food = overrides[i]
             updated.append(
                     FoodIdResult(
-                        food_type = food,
+                        food_type       = food,
                         food_confidence = 1.0,    # user-confirmed → treat as certain
-                        top_k = fi.top_k,
-                        ambiguous = False,
+                        top_k           = fi.top_k,
+                        ambiguous       = False,
                         override_applied = True,
-                        gn_id = fi.gn_id,
-                        gn_label = fi.gn_label,
+                        gn_id           = fi.gn_id,
+                        gn_label        = fi.gn_label,
                         container_vol_l = fi.container_vol_l,
-                        fill_ratio = fi.fill_ratio,
-                        fill_label = fi.fill_label,
+                        fill_ratio      = fi.fill_ratio,
+                        fill_label      = fi.fill_label,
                         fill_confidence = fi.fill_confidence,
-                        low_confidence = fi.low_confidence,
-                        food_volume_l = fi.food_volume_l,
+                        low_confidence  = fi.low_confidence,
+                        food_volume_l   = fi.food_volume_l,
                         container_label = fi.container_label,
                         detection_score = fi.detection_score,
-                        snap_warning = fi.snap_warning
+                        snap_warning    = fi.snap_warning,
+                        measurement_reliable = fi.measurement_reliable
                     )
                 )
         else:
@@ -277,7 +276,7 @@ def apply_overrides(stage7: StageSevenResult,
  
     return StageSevenResult(
         food_ids = updated,
-        aruco = stage7.aruco,
+        calibration = stage7.calibration,
         rectified_rgb = stage7.rectified_rgb
     )
  
@@ -285,22 +284,24 @@ def apply_overrides(stage7: StageSevenResult,
 def _make_result(
         pred: dict,
         fv: FoodVolumeResult,
-        override_applied: bool) -> FoodIdResult:
+        override_applied: bool
+        ) -> FoodIdResult:
     return FoodIdResult(
-        food_type = pred["food_type"],
+        food_type       = pred["food_type"],
         food_confidence = pred["confidence"],
-        top_k = pred["top_k"],
-        ambiguous = pred["ambiguous"],
+        top_k           = pred["top_k"],
+        ambiguous       = pred["ambiguous"],
         override_applied = override_applied,
-        gn_id = fv.gn_id,
-        gn_label = fv.gn_label,
+        gn_id           = fv.gn_id,
+        gn_label        = fv.gn_label,
         container_vol_l = fv.container_vol_l,
-        fill_ratio = fv.fill_ratio,
-        fill_label = fv.fill_label,
+        fill_ratio      = fv.fill_ratio,
+        fill_label      = fv.fill_label,
         fill_confidence = fv.fill_confidence,
-        low_confidence = fv.low_confidence,
-        food_volume_l = fv.food_volume_l,
+        low_confidence  = fv.low_confidence,
+        food_volume_l   = fv.food_volume_l,
         container_label = fv.container_label,
         detection_score = fv.detection_score,
-        snap_warning = fv.snap_warning
+        snap_warning    = fv.snap_warning,
+        measurement_reliable = fv.measurement_reliable
     )

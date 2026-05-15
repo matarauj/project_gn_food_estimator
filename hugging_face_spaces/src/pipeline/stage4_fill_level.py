@@ -15,6 +15,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from pipeline.stage3_geometry import StageThreeResult, CroppedContainer
+from cv_tasks.aruco import CalibrationState
 from cv_tasks.model_loader import get_fill_classifier
 import config as cfg
 
@@ -42,12 +43,13 @@ class FillResult:
     height_mm:      float
     mm_per_px:      float
     detection_score: float
+    measurement_reliable: bool  # False in approximate (no ArUco) mode
 
 
 @dataclass
 class StageFourResult:
     fills:     list[FillResult]
-    aruco:     dict
+    calibration:   CalibrationState
     rectified_rgb: np.ndarray
 
 
@@ -69,28 +71,29 @@ def run(stage3: StageThreeResult) -> StageFourResult:
     for crop_container in stage3.crops:
         pred = classifier.predict(crop_container.crop_rgb)
 
-        fill_ratio     = cfg.FILL_RATIOS.get(pred["label"], 0.0)
+        fill_ratio = cfg.FILL_RATIOS.get(pred["label"], 0.0)
         low_confidence = pred["confidence"] < cfg.CONFIDENCE_THRESHOLD
 
         fills.append(
             FillResult(
-                label = pred["label"],
-                confidence = pred["confidence"],
-                probs = pred["probs"],
-                fill_ratio = fill_ratio,
-                low_confidence = low_confidence,
-                crop_rgb = crop_container.crop_rgb,
-                box = crop_container.box,
+                label           = pred["label"],
+                confidence      = pred["confidence"],
+                probs           = pred["probs"],
+                fill_ratio      = fill_ratio,
+                low_confidence  = low_confidence,
+                crop_rgb        = crop_container.crop_rgb,
+                box             = crop_container.box,
                 container_label = crop_container.label,
-                width_mm = crop_container.width_mm,
-                height_mm = crop_container.height_mm,
-                mm_per_px = crop_container.mm_per_px,
-                detection_score = crop_container.score
+                width_mm        = crop_container.width_mm,
+                height_mm       = crop_container.height_mm,
+                mm_per_px       = crop_container.mm_per_px,
+                detection_score = crop_container.score,
+                measurement_reliable = crop_container.measurement_reliable
             )
         )
 
     return StageFourResult(
         fills = fills,
-        aruco = stage3.aruco,
+        calibration   = stage3.calibration,
         rectified_rgb = stage3.rectified_rgb
     )

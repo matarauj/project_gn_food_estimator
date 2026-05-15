@@ -20,7 +20,7 @@ import cv2
 import pandas as pd
 
 import config as cfg
-from cv_tasks.aruco import draw_aruco_overlay, ArUcoNotFoundError
+from cv_tasks.aruco import draw_aruco_overlay
 from cv_tasks.preprocessor import to_bgr
 from pipeline import (
     stage1_capture,
@@ -78,7 +78,7 @@ def inject_custom_css():
     </style>
     """, unsafe_allow_html=True)
 
-# Call this at the start of your app
+
 inject_custom_css()
 
 
@@ -95,7 +95,7 @@ st.set_page_config(
 )
 
 FBG_LOGO = cfg.ROOT / "images" / "fbg-logo.png"
-st.logo(FBG_LOGO, size = "large", link = "https://www.foodbegood.app/")
+st.logo(FBG_LOGO, size="large", link="https://www.foodbegood.app/")
 
 # =============================================================================
 # Sidebar
@@ -116,7 +116,6 @@ with st.sidebar:
                 **420**
          """)
 
-
     st.divider()
 
     st.subheader("Mode")
@@ -125,7 +124,7 @@ with st.sidebar:
             "**Stub mode** — no model files needed.\n\n"
             "Set `STUB_MODE = False` in `config.py` once `.pth` files "
             "are placed in `models/`.",
-            icon = "🔧"
+            icon="🔧"
         )
     else:
         st.success("**Live mode** — using trained models.", icon = "✅")
@@ -152,8 +151,8 @@ with st.sidebar:
     #    help = "Below this confidence, you will be asked to retake the photo."
     #)
     #cfg.CONFIDENCE_THRESHOLD = conf_thresh
+    #st.divider()
 
-    st.divider()
     st.caption(cfg.CO2_DISCLAIMER)
 
 
@@ -170,14 +169,15 @@ def to_pil(arr: np.ndarray) -> PILImage.Image:
 
 def draw_detections(
         image_rgb: np.ndarray,
-        containers: list) -> np.ndarray:
+        containers: list
+        ) -> np.ndarray:
     """
     Draw bounding boxes and labels on a copy of the image.
     """
     overlay = image_rgb.copy()
     colours = {
         "large container": (232, 89, 60),   # coral
-        "small container": (29, 158, 117)  # teal
+        "small container": (29, 158, 117)   # teal
     }
 
     for c in containers:
@@ -197,21 +197,41 @@ def draw_detections(
     return overlay
 
 
+def _calibration_banner(calibration) -> None:
+    """
+    Show a photo-level warning when the pipeline is running in approximate mode.
+    Displayed once, above the per-container results.
+    """
+    if not calibration.aruco_detected:
+        st.warning(
+            "**ArUco marker not detected — approximate mode.**  \n"
+            "The marker could not be found in this photo. "
+            "Food identification and fill estimation are still running, "
+            "but volume and mass measurements use a fixed fallback scale "
+            f"({cfg.ARUCO_FALLBACK_MM_PER_PX} mm/px) and may be less accurate.  \n"
+            "For best results, ensure the ArUco marker (DICT_4X4_50, "
+            f"any ID in {sorted(cfg.ARUCO_VALID_IDS)}, {cfg.ARUCO_MARKER_MM} mm side) "
+            "is clearly visible in the photo.",
+            icon="📐",
+        )
+
+
 def run_pipeline_pass1(source_bytes: bytes) -> dict | None:
     """
     Run Stages I-VII on one photo.
+
     Stops after Stage VII so the app can show food identification results
     and collect manual overrides before continuing to Stages VIII-IX.
+    ArUco detection is now a soft failure: if the marker is not found the
+    pipeline continues in approximate mode. The only hard failures are an
+    undecodable image (ValueError) and no container detected.
+
     Returns a partial results dict, or None on fatal error.
     """
     try:
         s1 = stage1_capture.run(source_bytes)
-    except ArUcoNotFoundError as e:
-        st.error(f"**ArUco marker not detected.** {e}")
-        st.warning(
-            "Ensure the printed marker (ID 0, DICT_4X4_50) is fully "
-            "visible and retake the photo."
-        )
+    except (ValueError, FileNotFoundError) as e:
+        st.error(f"**Could not decode image.** {e}")
         return None
 
     try:
@@ -249,28 +269,51 @@ def run_pipeline_pass2(partial: dict, overrides: dict) -> dict:
 
 def show_photo_results(results: dict, photo_label: str):
     """
-    Display the full per-photo results in two columns.
+    Display the full per-photo results.
     """
-    s1, s2, s3, s4, s9 = (results["s1"], results["s2"], results["s3"], results["s4"], results["s9"])
+    s1, s2, s3, s4, s9 = (
+        results["s1"],
+        results["s2"],
+        results["s3"],
+        results["s4"],
+        results["s9"]
+    )
+
+    calibration = s1.calibration
+
+    # --- Photo-level calibration warning (approximate mode) ---
+    _calibration_banner(calibration)
  
-    col_img, col_data = st.columns([1, 1], gap = "large", border = True)
+    col_img, col_data = st.columns([1, 1], gap="large", border=True)
  
     with col_img:
         st.markdown("##### Detection")
         det = draw_detections(s1.image_rgb, s2.containers)
-        bgr = draw_aruco_overlay(to_bgr(det), s1.aruco)
+        bgr = draw_aruco_overlay(to_bgr(det), calibration)
         st.image(
             to_pil(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)),
             width = "stretch",
-            caption = "Detected containers + ArUco marker"
+            caption = (
+                "Detected containers + ArUco marker"
+                if calibration.aruco_detected
+                else "Detected containers (no ArUco marker)"
+            )
         )
 
-        st.markdown("##### Rectified image")
-        st.image(
-            to_pil(s3.rectified_rgb),
-            width = "stretch",
-            caption = "After perspective correction (Stage III)"
-        )
+        if calibration.aruco_detected:
+            st.markdown("##### Rectified image")
+            st.image(
+                to_pil(s3.rectified_rgb),
+                width   = "stretch",
+                caption = "After perspective correction (Stage III)"
+            )
+        else:
+            st.markdown("##### Original image (no rectification)")
+            st.image(
+                to_pil(s3.rectified_rgb),
+                width   = "stretch",
+                caption = "Perspective correction skipped — ArUco not detected"
+            )
  
     with col_data:
         st.markdown("##### Container results")
@@ -292,7 +335,7 @@ def show_photo_results(results: dict, photo_label: str):
                 f"Container {i+1}  |  {em.container_label}  "
                 f"|  food: {food_badge}  "
                 f"|  fill: :{fill_colour}[{em.fill_label}]",
-                expanded = True
+                expanded=True
             ):
                 c1, c2 = st.columns([1, 2])
                 c1.image(
@@ -304,19 +347,28 @@ def show_photo_results(results: dict, photo_label: str):
                 with c2:
                     if em.ambiguous:
                         st.warning("Food type ambiguous — please confirm.",
-                                   icon = "⚠️")
+                                   icon="⚠️")
                     if em.low_confidence:
                         st.warning(
                             f"Fill level confidence low "
                             f"({s4.fills[i].confidence:.0%}). "
                             "Consider retaking.",
-                            icon = "⚠️"
+                            icon="⚠️"
                         )
-                    if em.snap_warning:
+                    if em.snap_warning and em.measurement_reliable:
+                        # Calibrated mode: measurement differed from label
                         st.info(
                             "Measured dimensions differed from label — "
                             "label used for volume.",
-                            icon = "ℹ️"
+                            icon="ℹ️"
+                        )
+                    if not em.measurement_reliable:
+                        # Approximate mode: volume is always from label only
+                        st.info(
+                            "Volume estimated from container label only "
+                            "(no ArUco scale available). "
+                            "Add the ArUco marker for accurate measurements.",
+                            icon="📐"
                         )
  
                     st.markdown(
@@ -364,25 +416,25 @@ def photo_tab(tab, key: str, label: str):
         method = st.radio(
             "Input method",
             ["Upload file", "Use camera"],
-            horizontal = True,
-            key = f"method_{key}"
+            horizontal=True,
+            key=f"method_{key}"
         )
         source = None
         if method == "Upload file":
             up = st.file_uploader(
                 "Upload a photo of the GN container",
-                type = ["jpg", "jpeg", "png"],
-                key = f"upload_{key}"
+                type=["jpg", "jpeg", "png"],
+                key=f"upload_{key}"
             )
             if up:
                 source = up.read()
         else:
             cam = st.camera_input(
                 "Hold camera perpendicular, 20-30 cm above the container.",
-                key = f"cam_{key}"
+                key=f"cam_{key}"
             )
             if cam:
-                source = cam.getvalue()
+                source=cam.getvalue()
  
         if source is None:
             st.info("No image provided yet.")
@@ -440,13 +492,13 @@ def photo_tab(tab, key: str, label: str):
                                 f"'{fi.top_k[0]['label'] if fi.top_k else 'none'}', "
                                 f"score {fi.food_confidence:.0%}). "
                                 "Please select the correct food below.",
-                                icon = "⚠️"
+                                icon="⚠️"
                             )
                         elif i in overrides:
                             st.info(
                                 f"Container {i+1}: manually set to "
                                 f"**{overrides[i]}**.",
-                                icon = "✅"
+                                icon="✅"
                             )
 
                         # Top-k predictions for reference
@@ -459,9 +511,12 @@ def photo_tab(tab, key: str, label: str):
                                         f"({p['score']:.0%}) → {mapped}"
                                     )
 
-                        current = overrides.get(i, fi.food_type
+                        current = overrides.get(
+                            i,
+                            fi.food_type
                                   if fi.food_type != "unknown"
-                                  else cfg.SUPPORTED_FOODS[0])
+                                  else cfg.SUPPORTED_FOODS[0]
+                        )
                         choice = st.selectbox(
                             f"Food type for container {i+1}",
                             options = cfg.SUPPORTED_FOODS,
@@ -472,7 +527,7 @@ def photo_tab(tab, key: str, label: str):
                         overrides[i] = choice
 
         # Always show a manual override option even when auto-detection succeeded
-        with st.expander("Manually override food type", expanded = False):
+        with st.expander("Manually override food type", expanded=False):
             for i, fi in enumerate(s7.food_ids):
                 if not fi.ambiguous and i not in overrides:
                     current = fi.food_type
@@ -489,7 +544,7 @@ def photo_tab(tab, key: str, label: str):
         st.session_state[f"overrides_{key}"] = overrides
 
         # ------------------------------------------------------------------
-        # Pass 2: Stages VIII–IX (runs whenever overrides change)
+        # Pass 2: Stages VIII–IX
         # ------------------------------------------------------------------
         with st.spinner("Calculating mass and CO₂…"):
             results = run_pipeline_pass2(partial, overrides)
@@ -539,16 +594,15 @@ with tab_cmp:
                 delta_color = "normal"
             )
  
-        # Per-container cards
         st.divider()
         st.markdown("#### Per-container breakdown")
  
         for i, c in enumerate(comp.containers):
             with st.expander(
                 f"Container {i+1} — {c.container_label} ({c.gn_id})",
-                expanded = True
+                expanded=True
             ):
-                ca, cb, cc = st.columns(3, border = True)
+                ca, cb, cc = st.columns(3, border=True)
                 with ca:
                     st.markdown("**Before (Photo 1)**")
                     st.markdown(f"Food: `{c.food_type_before}`")
@@ -578,7 +632,6 @@ with tab_cmp:
                             f":red[**{abs(c.co2_saved_kg):.3f} kg**]"
                         )
  
-        # Summary table
         st.divider()
         st.markdown("#### Summary table")
  
@@ -592,18 +645,18 @@ with tab_cmp:
                 "Fill before":      c.fill_before,
                 "Fill after":       c.fill_after,
                 "Mass before (kg)": round(c.mass_kg_before, 3),
-                "Mass after (kg)":  round(c.mass_kg_after,  3),
+                "Mass after (kg)":  round(c.mass_kg_after, 3),
                 "CO\u2082 before (kg)": round(c.co2_kg_before, 3),
-                "CO\u2082 after (kg)":  round(c.co2_kg_after,  3),
-                "CO\u2082 saved (kg)":  round(c.co2_saved_kg,  3)
+                "CO\u2082 after (kg)":  round(c.co2_kg_after, 3),
+                "CO\u2082 saved (kg)":  round(c.co2_saved_kg, 3)
             })
         rows.append({
-            "Container": "Total",
-            "GN ID": "",
-            "Food before": "",
-            "Food after": "",
-            "Fill before": "",
-            "Fill after": "",
+            "Container":        "Total",
+            "GN ID":            "",
+            "Food before":      "",
+            "Food after":       "",
+            "Fill before":      "",
+            "Fill after":       "",
             "Mass before (kg)": round(comp.total_mass_before, 3),
             "Mass after (kg)":  round(comp.total_mass_after,  3),
             "CO\u2082 before (kg)": round(comp.total_co2_before, 3),
@@ -613,8 +666,8 @@ with tab_cmp:
  
         st.dataframe(
             pd.DataFrame(rows),
-            use_container_width = True,
-            hide_index = True
+            use_container_width=True,
+            hide_index=True
         )
         st.caption(cfg.CO2_DISCLAIMER)
         

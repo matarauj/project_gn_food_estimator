@@ -12,6 +12,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from pipeline.stage7_food_id import StageSevenResult, FoodIdResult
+from cv_tasks.aruco import CalibrationState
 import config as cfg
 
 
@@ -33,13 +34,14 @@ class MassResult:
     container_label: str
     detection_score: float
     snap_warning:    bool
+    measurement_reliable: bool
     top_k:           list
 
 
 @dataclass
 class StageEightResult:
     masses:        list[MassResult]
-    aruco:         dict
+    calibration:   CalibrationState
     rectified_rgb: object
 
 
@@ -54,27 +56,28 @@ def run(stage7: StageSevenResult) -> StageEightResult:
 
         results.append(
             MassResult(
-                food_type = fi.food_type,
+                food_type       = fi.food_type,
                 food_confidence = fi.food_confidence,
-                ambiguous = fi.ambiguous,
-                gn_id = fi.gn_id,
-                gn_label = fi.gn_label,
+                ambiguous       = fi.ambiguous,
+                gn_id           = fi.gn_id,
+                gn_label        = fi.gn_label,
                 container_vol_l = fi.container_vol_l,
-                fill_ratio = fi.fill_ratio,
-                fill_label = fi.fill_label,
+                fill_ratio      = fi.fill_ratio,
+                fill_label      = fi.fill_label,
                 fill_confidence = fi.fill_confidence,
-                low_confidence = fi.low_confidence,
-                food_volume_l = fi.food_volume_l,
-                density_kg_l = density,
-                mass_kg = mass_kg,
+                low_confidence  = fi.low_confidence,
+                food_volume_l   = fi.food_volume_l,
+                density_kg_l    = density,
+                mass_kg         = mass_kg,
                 container_label = fi.container_label,
                 detection_score = fi.detection_score,
-                snap_warning = fi.snap_warning,
-                top_k = fi.top_k
+                snap_warning    = fi.snap_warning,
+                measurement_reliable = fi.measurement_reliable,
+                top_k           = fi.top_k
         ))
 
     return StageEightResult(
         masses = results,
-        aruco = stage7.aruco,
+        calibration = stage7.calibration,
         rectified_rgb = stage7.rectified_rgb
     )
