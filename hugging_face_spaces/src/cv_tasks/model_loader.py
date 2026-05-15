@@ -188,7 +188,7 @@ class EfficientNetFillClassifier:
         pil_img = PILImage.fromarray(image_rgb)
         _, pred_idx, probs = self._learn.predict(pil_img)
 
-        label      = self._vocab[pred_idx]
+        label      = self._vocab[int(pred_idx)]
         confidence = float(probs.max())
         prob_dict  = {cls: float(p) for cls, p in zip(self._vocab, probs)}
 
