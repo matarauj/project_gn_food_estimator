@@ -12,8 +12,7 @@
 #   2. Compute a pixel-derived volume from the measured dimensions and the
 #      known container depth (from config.GN_CONTAINERS).
 #   3. If the pixel-derived volume is within GN_SNAP_TOLERANCE of a standard
-#      GN volume, snap to that standard — this corrects small measurement
-#      errors and guarantees we always output a known GN size.
+#      GN volume, snap to that standard .
 #   4. If the pixel-derived volume disagrees with the label-based volume by
 #      more than the tolerance, prefer the label (Model #1 is more reliable
 #      than pixel measurement at this dataset size) and set snap_warning=True.
@@ -85,6 +84,10 @@ def _label_to_gn_id(label: str) -> str | None:
     """
     Map a Model #1 label to a GN container ID.
     """
+    if label is None:
+        return None
+
+    normalised = label.lower().replace("_", " ").strip()
     for gn_id, spec in cfg.GN_CONTAINERS.items():
         if spec["label"] == label:
             return gn_id
@@ -110,6 +113,19 @@ def _snap_to_standard(measured_volume_l: float) -> tuple[str, bool]:
     return best_id, snapped
 
 
+def _fallback_gn_id(label_gn_id: str | None, snap_gn_id: str | None) -> str:
+    """
+    Return the best available GN ID, falling back to the first container
+    in config if both label and snap resolution failed.
+    """
+    if label_gn_id is not None:
+        return label_gn_id
+    if snap_gn_id is not None:
+        return snap_gn_id
+    # Last resort: use the first container defined in config
+    return next(iter(cfg.GN_CONTAINERS))
+
+
 def _estimate_volume(fill: FillResult) -> VolumeResult:
     # label-based GN ID
     label_gn_id = _label_to_gn_id(fill.container_label)
@@ -132,7 +148,11 @@ def _estimate_volume(fill: FillResult) -> VolumeResult:
     # because the pixel measurements cannot be trusted.
     if not fill.measurement_reliable:
         snap_warning = True
-        final_gn_id  = label_gn_id or snap_gn_id
+        final_gn_id  = _fallback_gn_id(label_gn_id, snap_gn_id)
+    elif label_gn_id is None:
+        # Label unrecognised — fall back to snap result with a warning
+        snap_warning = True
+        final_gn_id  = _fallback_gn_id(snap_gn_id, None)
     elif label_gn_id != snap_gn_id:
         snap_warning = True
         final_gn_id  = label_gn_id   # Model #1 label is more reliable
@@ -143,21 +163,21 @@ def _estimate_volume(fill: FillResult) -> VolumeResult:
     spec = cfg.GN_CONTAINERS[final_gn_id]
 
     return VolumeResult(
-        gn_id =             final_gn_id,
-        gn_label =          spec["label"],
-        volume_l =          spec["volume_l"],
-        inner_l_mm =        spec["inner_l_mm"],
-        inner_w_mm =        spec["inner_w_mm"],
-        depth_mm =          spec["depth_mm"],
-        measured_w_mm =     fill.width_mm,
-        measured_h_mm =     fill.height_mm,
-        snapped =           snapped,
-        snap_warning =      snap_warning,
+        gn_id               = final_gn_id,
+        gn_label            = spec["label"],
+        volume_l            = spec["volume_l"],
+        inner_l_mm          = spec["inner_l_mm"],
+        inner_w_mm          = spec["inner_w_mm"],
+        depth_mm            = spec["depth_mm"],
+        measured_w_mm       = fill.width_mm,
+        measured_h_mm       = fill.height_mm,
+        snapped             = snapped,
+        snap_warning        = snap_warning,
         measurement_reliable = fill.measurement_reliable,
-        fill_ratio =        fill.fill_ratio,
-        fill_label =        fill.label,
-        fill_confidence =   fill.confidence,
-        low_confidence =    fill.low_confidence,
-        container_label =   fill.container_label,
-        detection_score =   fill.detection_score
+        fill_ratio          = fill.fill_ratio,
+        fill_label          = fill.label,
+        fill_confidence     = fill.confidence,
+        low_confidence      = fill.low_confidence,
+        container_label     = fill.container_label,
+        detection_score     = fill.detection_score
     )

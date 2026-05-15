@@ -50,14 +50,14 @@ HIST_EQ_ENABLED = True      # Apply CLAHE histogram equalisation in Stage I
 # -----------------------------------------------------------------------------
 GN_CONTAINERS = {
     "GN_1_1": {
-        "label": "large container",
+        "label": "large_container",
         "inner_l_mm": 228,
         "inner_w_mm": 128,
         "depth_mm": 65,
         "volume_l": round(228 * 128 * 65 / 1e6, 2)
     },
     "GN_1_2": {
-        "label": "small container",
+        "label": "small_container",
         "inner_l_mm": 117,
         "inner_w_mm": 98,
         "depth_mm": 40,
