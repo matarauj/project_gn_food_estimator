@@ -155,7 +155,7 @@ class EfficientNetFillClassifier:
 
 
     def _load(self):
-        import torch
+        #import torch
         from fastai.vision.all import load_learner
 
         if not cfg.MODEL2_PATH.exists():
@@ -167,7 +167,7 @@ class EfficientNetFillClassifier:
         # fastai's load_learner loads the full exported learner (.pkl / .pth)
         self._learn = load_learner(cfg.MODEL2_PATH)
         self._vocab = list(self._learn.dls.vocab)
-        self._model = self._learn
+        #self._model = self._learn
 
 
     def predict(self, image_rgb: np.ndarray) -> dict:
@@ -180,15 +180,17 @@ class EfficientNetFillClassifier:
             probs      : dict {class: probability}
         """
         from PIL import Image as PILImage
-        import torch
+        #import torch
 
         if self._model is None:
             self._load()
 
         pil_img = PILImage.fromarray(image_rgb)
-        _, pred_idx, probs = self._learn.predict(pil_img)
+        _, _, probs = self._learn.predict(pil_img)
 
-        label      = self._vocab[int(pred_idx)]
+        # Derive the predicted class index directly from the probability tensor.
+        pred_idx   = int(probs.argmax())
+        label      = self._vocab[pred_idx]
         confidence = float(probs.max())
         prob_dict  = {cls: float(p) for cls, p in zip(self._vocab, probs)}
 
