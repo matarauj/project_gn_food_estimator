@@ -150,12 +150,14 @@ class EfficientNetFillClassifier:
     Loaded lazily on first call.
     """
     def __init__(self):
-        self._model = None
+        self._learn = None
         self._vocab = None
 
 
     def _load(self):
         #import torch
+        import pathlib
+        import platform
         from fastai.vision.all import load_learner
 
         if not cfg.MODEL2_PATH.exists():
@@ -164,10 +166,20 @@ class EfficientNetFillClassifier:
                 "Train the model first or set config.STUB_MODE = True."
             )
 
-        # fastai's load_learner loads the full exported learner (.pkl / .pth)
-        self._learn = load_learner(cfg.MODEL2_PATH)
+        # fastai's load_learner loads the full exported learner (.pkl / .pth).
+        # The learner was exported on Linux (Kaggle) and pickles PosixPath
+        # objects, which cannot be instantiated on Windows — map them to
+        # WindowsPath while unpickling.
+        if platform.system() == "Windows":
+            posix_path = pathlib.PosixPath
+            pathlib.PosixPath = pathlib.WindowsPath
+            try:
+                self._learn = load_learner(cfg.MODEL2_PATH)
+            finally:
+                pathlib.PosixPath = posix_path
+        else:
+            self._learn = load_learner(cfg.MODEL2_PATH)
         self._vocab = list(self._learn.dls.vocab)
-        #self._model = self._learn
 
 
     def predict(self, image_rgb: np.ndarray) -> dict:
@@ -182,11 +194,20 @@ class EfficientNetFillClassifier:
         from PIL import Image as PILImage
         #import torch
 
-        if self._model is None:
+        if self._learn is None:
             self._load()
 
         pil_img = PILImage.fromarray(image_rgb)
-        _, _, probs = self._learn.predict(pil_img)
+
+        # get_preds instead of learn.predict: predict's label decoding fails
+        # with newer fastai versions than the one used for export, and only
+        # the probabilities are needed here. num_workers = 0 avoids spawning
+        # DataLoader worker processes (slow / can hang on Windows).
+        # The learner's loss is plain torch CrossEntropyLoss (no activation),
+        # so softmax must be applied explicitly — otherwise these are logits.
+        dl = self._learn.dls.test_dl([pil_img], num_workers = 0)
+        probs, _ = self._learn.get_preds(dl = dl, act = lambda x: x.softmax(dim = -1))
+        probs = probs[0]
 
         # Derive the predicted class index directly from the probability tensor.
         pred_idx   = int(probs.argmax())
