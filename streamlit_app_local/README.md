@@ -32,10 +32,13 @@ This folder runs the Streamlit app locally on your computer.
   `MODEL3_FINETUNED = False` in `src/config.py` to use the stock 101-class
   nateraw/food instead
 
-Models #1 and #2 are stored in `src/models/` (Git LFS — run `git lfs pull`
-if the `.pth` files are only a few bytes). Model #3 is downloaded from the
-HuggingFace Hub on the first run (~350 MB) and cached in
-`src/models/nateraw_food_cache/` (git-ignored).
+All model weights are stored in `src/models/` (Git LFS — run `git lfs pull`
+if the `.pth` files are only a few bytes). Training logs and held-out test
+splits are in `src/models/training/`. On the first run, the nateraw/food
+architecture config is fetched from the HuggingFace Hub and cached in
+`src/models/nateraw_food_cache/` (git-ignored). With
+`MODEL3_FINETUNED = False`, the full stock model (~350 MB) is downloaded
+there instead.
 
 ## Setup (Windows, PowerShell)
 
