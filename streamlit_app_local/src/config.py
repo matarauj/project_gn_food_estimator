@@ -132,7 +132,19 @@ MODEL3_HF_NAME    = "nateraw/food"
 MODEL3_CACHE_DIR = MODELS_DIR / "nateraw_food_cache"   # local cache folder
 MODEL3_TOP_K      = 3                   # return top-k food predictions
 MODEL3_MIN_SCORE  = 0.30                # below this → label as "unknown"
- 
+
+# Fine-tuned Model #3 (model3_food_classifier_v1 notebook): nateraw/food with
+# a 2-class head (lentils / rice). Only the architecture config is read from
+# the cache above; the weights come from MODEL3_PATH.
+# False → stock nateraw/food (101 classes) + FOOD_CLASS_MAP below.
+MODEL3_FINETUNED  = True
+MODEL3_PATH       = MODELS_DIR / "model3_food_id.pth"      # state dict
+MODEL3_LABEL_MAP  = MODELS_DIR / "model3_label_map.json"   # {class: index}
+MODEL3_FT_MIN_SCORE = 0.70              # 2 classes → max prob is always ≥ 0.5
+MODEL3_IMAGE_SIZE = 224                 # eval transform in training
+MODEL3_NORM_MEAN  = [0.485, 0.456, 0.406]   # ImageNet stats used in training
+MODEL3_NORM_STD   = [0.229, 0.224, 0.225]
+
 # Map HuggingFace Food-101 class names → our canonical food names
 # Only classes relevant to your menu need entries here.
 FOOD_CLASS_MAP = {

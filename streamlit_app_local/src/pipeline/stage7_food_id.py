@@ -5,7 +5,11 @@
 #
 # Model #3: nateraw/food (ViT-base, Food-101, HuggingFace)
 #
-# Loading strategy:
+# With cfg.MODEL3_FINETUNED (default), uses the fine-tuned 2-class model
+# (lentils / rice) from cfg.MODEL3_PATH; otherwise the stock 101-class model,
+# whose labels are mapped through cfg.FOOD_CLASS_MAP.
+#
+# Loading strategy (stock model; the fine-tuned one reads only its config):
 #   - On first run the model is downloaded from HuggingFace Hub
 #     and saved to cfg.MODEL3_CACHE_DIR.
 #   - On subsequent runs it loads directly from the cache.
@@ -25,6 +29,7 @@
 # =============================================================================
 
 from dataclasses import dataclass
+import json
 import numpy as np
 import sys
 from pathlib import Path
@@ -36,6 +41,7 @@ import config as cfg
 
 
 _hf_pipeline = None    # module-level singleton
+_ft_model    = None    # module-level singleton: (model, idx_to_label, transform, device)
 
 
 def _get_hf_pipeline():
@@ -83,6 +89,60 @@ def _get_hf_pipeline():
     )
     print("[Model #3] Ready.")
     return _hf_pipeline
+
+
+def _get_finetuned_model():
+    """
+    Load the fine-tuned Model #3 (state dict saved by the training notebook).
+    The ViT architecture is built from the cached nateraw/food config, so the
+    stock 101-class weights are never loaded.
+    """
+    global _ft_model
+    if _ft_model is not None:
+        return _ft_model
+
+    import torch
+    import torchvision.transforms as T
+    from torchvision.transforms import InterpolationMode
+    from transformers import AutoConfig, ViTForImageClassification
+
+    with open(cfg.MODEL3_LABEL_MAP) as f:
+        label_to_idx = json.load(f)
+    idx_to_label = {v: k for k, v in label_to_idx.items()}
+
+    config = AutoConfig.from_pretrained(
+        cfg.MODEL3_HF_NAME,
+        cache_dir = str(cfg.MODEL3_CACHE_DIR),
+        id2label  = idx_to_label,
+        label2id  = label_to_idx
+    )
+    state = torch.load(cfg.MODEL3_PATH, map_location = "cpu", weights_only = True)
+
+    # from_pretrained (not load_state_dict) so transformers renames the
+    # parameter names of checkpoints saved with older versions (training on
+    # Kaggle used transformers 4.x; 5.x renamed the ViT layers).
+    model, info = ViTForImageClassification.from_pretrained(
+        None, config = config, state_dict = state, output_loading_info = True
+    )
+    bad = {k: v for k, v in info.items() if k != "error_msgs" and v}
+    if bad or info.get("error_msgs"):
+        raise RuntimeError(f"Model #3 weights do not match the architecture: {info}")
+    model.eval()
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
+
+    # Same as eval_transform in the training notebook
+    transform = T.Compose([
+        T.Resize(cfg.MODEL3_IMAGE_SIZE, interpolation = InterpolationMode.BILINEAR),
+        T.CenterCrop(cfg.MODEL3_IMAGE_SIZE),
+        T.ToTensor(),
+        T.Normalize(mean = cfg.MODEL3_NORM_MEAN, std = cfg.MODEL3_NORM_STD)
+    ])
+
+    print(f"[Model #3] Fine-tuned model ready ({cfg.MODEL3_PATH.name}).")
+    _ft_model = (model, idx_to_label, transform, device)
+    return _ft_model
 
 
 # ---------------------------------------------------------------------------
@@ -159,10 +219,41 @@ class _HFFoodIdentifier:
         }
 
 
+class _FineTunedFoodIdentifier:
+    """
+    Runs the fine-tuned Model #3, whose classes are the supported foods.
+    """
+    def identify(self, image_rgb: np.ndarray) -> dict:
+        import torch
+        from PIL import Image as PILImage
+
+        model, idx_to_label, transform, device = _get_finetuned_model()
+        x = transform(PILImage.fromarray(image_rgb)).unsqueeze(0).to(device)
+
+        with torch.no_grad():
+            probs = model(pixel_values = x).logits.softmax(dim = -1)[0].cpu()
+
+        top_k = sorted(
+            ({"label": idx_to_label[i], "mapped": idx_to_label[i], "score": float(p)}
+             for i, p in enumerate(probs)),
+            key = lambda p: p["score"], reverse = True
+        )
+        best = top_k[0]
+
+        return {
+            "food_type":  best["mapped"] if best["score"] >= cfg.MODEL3_FT_MIN_SCORE else "unknown",
+            "confidence": best["score"],
+            "top_k":      top_k,
+            "ambiguous":  best["score"] < cfg.MODEL3_FT_MIN_SCORE
+        }
+
+
 def _get_identifier():
     if cfg.STUB_MODE:
         return _StubFoodIdentifier()
         #return _HFFoodIdentifier()
+    if cfg.MODEL3_FINETUNED and cfg.MODEL3_PATH.exists():
+        return _FineTunedFoodIdentifier()
     return _HFFoodIdentifier()
 
 

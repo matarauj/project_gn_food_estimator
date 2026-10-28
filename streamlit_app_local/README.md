@@ -27,7 +27,10 @@ This folder runs the Streamlit app locally on your computer.
   `src/config.py` to always use the combined model. The full fastai exports
   (`model2_fill*.pth`) are not used: they only load on the Python version
   they were exported with
-- **Model #3** — nateraw/food (ViT, Food-101): food identification
+- **Model #3** — nateraw/food (ViT, Food-101) fine-tuned on lentils / rice:
+  food identification (`model3_food_id.pth` + `model3_label_map.json`). Set
+  `MODEL3_FINETUNED = False` in `src/config.py` to use the stock 101-class
+  nateraw/food instead
 
 Models #1 and #2 are stored in `src/models/` (Git LFS — run `git lfs pull`
 if the `.pth` files are only a few bytes). Model #3 is downloaded from the
