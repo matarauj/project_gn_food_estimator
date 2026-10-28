@@ -1,5 +1,7 @@
 # GN Food Estimator (local)
 
+> For the project overview, architecture and results, see the [main README](../README.md).
+
 Estimate food volume and CO₂ emissions from GN (Gastronorm) containers
 using computer vision and deep learning.
 
