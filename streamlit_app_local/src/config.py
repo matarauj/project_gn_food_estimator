@@ -1,11 +1,10 @@
 # =============================================================================
 # config.py — inference-only configuration for the GN Food Estimator app
-# HuggingFace Spaces edition:
-#   - MODEL3_CACHE_DIR points to /tmp (writable) instead of models/
+# Local edition:
+#   - MODEL3_CACHE_DIR points to models/nateraw_food_cache/ (git-ignored)
 # =============================================================================
 
 from pathlib import Path
-import os
 
 ROOT       = Path(__file__).resolve().parent
 MODELS_DIR = ROOT / "models"
@@ -112,13 +111,12 @@ CO2_DISCLAIMER = (
 
 # -----------------------------------------------------------------------------
 # Model #3 — food identification (HuggingFace nateraw/food)
-
-# HuggingFace Spaces: the home directory is not writable, so the model
-# cache must be redirected to /tmp. The HF_HOME environment variable is
-# set in the Dockerfile; MODEL3_CACHE_DIR reads it here for consistency.
+#
+# Downloaded from HuggingFace Hub on first run, then loaded from the local
+# cache folder below.
 # -----------------------------------------------------------------------------
 MODEL3_HF_NAME    = "nateraw/food"
-MODEL3_CACHE_DIR = Path(os.environ.get("HF_HOME", "/tmp/huggingface")) / "nateraw_food"
+MODEL3_CACHE_DIR = MODELS_DIR / "nateraw_food_cache"   # local cache folder
 MODEL3_TOP_K      = 3                   # return top-k food predictions
 MODEL3_MIN_SCORE  = 0.30                # below this → label as "unknown"
  

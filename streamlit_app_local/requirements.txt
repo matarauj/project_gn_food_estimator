@@ -1,5 +1,5 @@
 # =============================================================================
-# requirements.txt — GN Food Estimator (HuggingFace Spaces)
+# requirements.txt — GN Food Estimator (local)
 # Full dependencies for live model inference.
 # =============================================================================
 
