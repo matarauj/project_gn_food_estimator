@@ -3,7 +3,8 @@
 # =============================================================================
 # Stage IV — classify the fill level of each cropped container.
 #
-# Uses Model #2 on each crop from Stage III.
+# Uses Model #2 on each crop from Stage III — the fill model trained for the
+# detected container size (cfg.MODEL2_PATHS), or the combined model.
 # If confidence is below cfg.CONFIDENCE_THRESHOLD, sets low_confidence=True
 # so the app can prompt the user to retake the photo.
 # =============================================================================
@@ -19,14 +20,13 @@ from cv_tasks.aruco import CalibrationState
 from cv_tasks.model_loader import get_fill_classifier
 import config as cfg
 
-_classifier = None
+_classifiers = {}   # {container label: classifier}
 
 
-def _get_classifier():
-    global _classifier
-    if _classifier is None:
-        _classifier = get_fill_classifier()
-    return _classifier
+def _get_classifier(container_label: str):
+    if container_label not in _classifiers:
+        _classifiers[container_label] = get_fill_classifier(container_label)
+    return _classifiers[container_label]
 
 
 @dataclass
@@ -65,10 +65,10 @@ def run(stage3: StageThreeResult) -> StageFourResult:
     -------
     StageFourResult
     """
-    classifier = _get_classifier()
     fills = []
 
     for crop_container in stage3.crops:
+        classifier = _get_classifier(crop_container.label)
         pred = classifier.predict(crop_container.crop_rgb)
 
         fill_ratio = cfg.FILL_RATIOS.get(pred["label"], 0.0)

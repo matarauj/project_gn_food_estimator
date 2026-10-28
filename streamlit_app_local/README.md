@@ -20,7 +20,13 @@ This folder runs the Streamlit app locally on your computer.
 ## Models
 
 - **Model #1** — Faster R-CNN ResNet-50 FPN: container detection
-- **Model #2** — EfficientNet-B0: fill level classification
+- **Model #2** — EfficientNet-B0: fill level classification. The app loads
+  the weights-only `model2_small_state_dict.pth` / `model2_large_state_dict.pth`
+  for the detected container size (falling back to the combined
+  `model2_state_dict.pth`); set `MODEL2_PER_CONTAINER = False` in
+  `src/config.py` to always use the combined model. The full fastai exports
+  (`model2_fill*.pth`) are not used: they only load on the Python version
+  they were exported with
 - **Model #3** — nateraw/food (ViT, Food-101): food identification
 
 Models #1 and #2 are stored in `src/models/` (Git LFS — run `git lfs pull`

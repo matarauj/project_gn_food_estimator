@@ -15,7 +15,7 @@ MODELS_DIR = ROOT / "models"
 # -----------------------------------------------------------------------------
 MODEL1_PATH      = MODELS_DIR / "model1_detector.pth"
 MODEL1_LABEL_MAP = MODELS_DIR / "model1_label_map.json"
-MODEL2_PATH      = MODELS_DIR / "model2_fill.pth"
+MODEL2_PATH      = MODELS_DIR / "model2_state_dict.pth"   # combined model (fallback)
 
 
 # -----------------------------------------------------------------------------
@@ -86,6 +86,19 @@ FILL_RATIOS = {
     "full": 0.95
 }
 CONFIDENCE_THRESHOLD = 0.70   # below this → ask user to retake photo
+
+# Model output order = fastai's vocab (classes sorted alphabetically)
+MODEL2_VOCAB      = sorted(MODEL2_CLASSES)
+MODEL2_ARCH       = "efficientnet_b0"   # timm model name used in training
+MODEL2_IMAGE_SIZE = 512                 # Resize(IMAGE_SIZE) item transform in training
+
+# Per-container fill classifiers (each trained only on one container size).
+# Keys match Model #1 labels. False → always use the combined MODEL2_PATH.
+MODEL2_PER_CONTAINER = True
+MODEL2_PATHS = {
+    "small_container": MODELS_DIR / "model2_small_state_dict.pth",
+    "large_container": MODELS_DIR / "model2_large_state_dict.pth",
+}
 
 
 # -----------------------------------------------------------------------------
